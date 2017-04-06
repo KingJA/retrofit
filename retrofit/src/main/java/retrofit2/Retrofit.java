@@ -125,6 +125,7 @@ public final class Retrofit {
    */
   @SuppressWarnings("unchecked") // Single-interface proxy creation guarded by parameter safety.
   public <T> T create(final Class<T> service) {
+    //判断是接口，并且没有父类
     Utils.validateServiceInterface(service);
     if (validateEagerly) {
       eagerlyValidateMethods(service);
