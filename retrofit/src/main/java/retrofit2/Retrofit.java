@@ -15,6 +15,15 @@
  */
 package retrofit2;
 
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
+import retrofit2.http.GET;
+import retrofit2.http.HTTP;
+import retrofit2.http.Header;
+import retrofit2.http.Url;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -25,14 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
-import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
-import retrofit2.http.GET;
-import retrofit2.http.HTTP;
-import retrofit2.http.Header;
-import retrofit2.http.Url;
 
 import static java.util.Collections.unmodifiableList;
 import static retrofit2.Utils.checkNotNull;
@@ -140,6 +141,7 @@ public final class Retrofit {
             if (method.getDeclaringClass() == Object.class) {
               return method.invoke(this, args);
             }
+            //如果是Java8引入的default方法，直接调用
             if (platform.isDefaultMethod(method)) {
               return platform.invokeDefaultMethod(method, service, proxy, args);
             }
@@ -161,12 +163,15 @@ public final class Retrofit {
   }
 
   ServiceMethod<?, ?> loadServiceMethod(Method method) {
+    //有缓存则返回缓存的方法
     ServiceMethod<?, ?> result = serviceMethodCache.get(method);
     if (result != null) return result;
 
+    //没缓存则创建方法，并存入缓存
     synchronized (serviceMethodCache) {
       result = serviceMethodCache.get(method);
       if (result == null) {
+        //采用建造者模式创建服务方法,讲接口里的方法解析成请求体
         result = new ServiceMethod.Builder<>(this, method).build();
         serviceMethodCache.put(method, result);
       }
@@ -558,27 +563,28 @@ public final class Retrofit {
      * OkHttpClient} will be created and used.
      */
     public Retrofit build() {
+      //没有传入baseUrl则报错
       if (baseUrl == null) {
         throw new IllegalStateException("Base URL required.");
       }
-
+      //没有传入HttpClient默认提供OkHttpClient
       okhttp3.Call.Factory callFactory = this.callFactory;
       if (callFactory == null) {
         callFactory = new OkHttpClient();
       }
-
+      //如果没有传入回调线程则默认为Android主线程,Java 没重写defaultCallbackExecutor方法，可能需要传入
       Executor callbackExecutor = this.callbackExecutor;
       if (callbackExecutor == null) {
         callbackExecutor = platform.defaultCallbackExecutor();
       }
-
+      //传入适配器工，初始化传入默认的适配器工厂，返回Call厂
       // Make a defensive copy of the adapters and add the default Call adapter.
       List<CallAdapter.Factory> adapterFactories = new ArrayList<>(this.adapterFactories);
       adapterFactories.add(platform.defaultCallAdapterFactory(callbackExecutor));
-
+      //传入转换器工厂，在Builder构造方法中已经加入BuiltInConverters：converterFactories.add(new BuiltInConverters());
       // Make a defensive copy of the converters.
       List<Converter.Factory> converterFactories = new ArrayList<>(this.converterFactories);
-
+      //validateEagerly有retrofit建造者设置
       return new Retrofit(callFactory, baseUrl, converterFactories, adapterFactories,
           callbackExecutor, validateEagerly);
     }

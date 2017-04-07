@@ -15,6 +15,10 @@
  */
 package retrofit2;
 
+import okhttp3.Headers;
+import okhttp3.*;
+import retrofit2.http.*;
+
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -26,35 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import okhttp3.Headers;
-import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
-import retrofit2.http.Body;
-import retrofit2.http.DELETE;
-import retrofit2.http.Field;
-import retrofit2.http.FieldMap;
-import retrofit2.http.FormUrlEncoded;
-import retrofit2.http.GET;
-import retrofit2.http.HEAD;
-import retrofit2.http.HTTP;
-import retrofit2.http.Header;
-import retrofit2.http.HeaderMap;
-import retrofit2.http.Multipart;
-import retrofit2.http.OPTIONS;
-import retrofit2.http.PATCH;
-import retrofit2.http.POST;
-import retrofit2.http.PUT;
-import retrofit2.http.Part;
-import retrofit2.http.PartMap;
-import retrofit2.http.Path;
-import retrofit2.http.Query;
-import retrofit2.http.QueryMap;
-import retrofit2.http.QueryName;
-import retrofit2.http.Url;
 
 /** Adapts an invocation of an interface method into an HTTP call. */
 final class ServiceMethod<R, T> {
@@ -170,7 +145,7 @@ final class ServiceMethod<R, T> {
       for (Annotation annotation : methodAnnotations) {
         parseMethodAnnotation(annotation);
       }
-
+        //没有方法注解则报隐藏
       if (httpMethod == null) {
         throw methodError("HTTP method annotation is required (e.g., @GET, @POST, etc.).");
       }
@@ -290,6 +265,7 @@ final class ServiceMethod<R, T> {
       }
 
       // Get the relative URL path and existing query string, if present.
+        //如果是get请求，并且有传参数，获取参数
       int question = value.indexOf('?');
       if (question != -1 && question < value.length() - 1) {
         // Ensure the query string does not have any named parameters.
@@ -300,8 +276,9 @@ final class ServiceMethod<R, T> {
               + "For dynamic query parameters use @Query.", queryParams);
         }
       }
-
+        //相对地址
       this.relativeUrl = value;
+        //占位符set
       this.relativeUrlParamNames = parsePathParameters(value);
     }
 

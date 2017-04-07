@@ -15,7 +15,6 @@
  */
 package retrofit2;
 
-import java.io.IOException;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.ResponseBody;
@@ -23,6 +22,8 @@ import okio.Buffer;
 import okio.BufferedSource;
 import okio.ForwardingSource;
 import okio.Okio;
+
+import java.io.IOException;
 
 import static retrofit2.Utils.checkNotNull;
 
@@ -70,6 +71,10 @@ final class OkHttpCall<T> implements Call<T> {
     }
   }
 
+  /**
+   * 执行网络请求 异步
+   * @param callback
+   */
   @Override public void enqueue(final Callback<T> callback) {
     checkNotNull(callback, "callback == null");
 
@@ -143,9 +148,14 @@ final class OkHttpCall<T> implements Call<T> {
     return executed;
   }
 
+  /**
+   * 执行网络请求 同步
+   * @return
+   * @throws IOException
+   */
   @Override public Response<T> execute() throws IOException {
     okhttp3.Call call;
-
+    //如何已经在执行者不再执行
     synchronized (this) {
       if (executed) throw new IllegalStateException("Already executed.");
       executed = true;
@@ -157,7 +167,7 @@ final class OkHttpCall<T> implements Call<T> {
           throw (RuntimeException) creationFailure;
         }
       }
-
+      //如果请求为空则创建请求
       call = rawCall;
       if (call == null) {
         try {
@@ -185,6 +195,12 @@ final class OkHttpCall<T> implements Call<T> {
     return call;
   }
 
+  /**
+   * 解析网络请求返回的数据
+   * @param rawResponse
+   * @return
+   * @throws IOException
+   */
   Response<T> parseResponse(okhttp3.Response rawResponse) throws IOException {
     ResponseBody rawBody = rawResponse.body();
 
