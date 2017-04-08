@@ -187,7 +187,9 @@ final class OkHttpCall<T> implements Call<T> {
   }
 
   private okhttp3.Call createRawCall() throws IOException {
+    //将参数整合成请求参数
     Request request = serviceMethod.toRequest(args);
+    //调用OkHttpClient的newCall方法
     okhttp3.Call call = serviceMethod.callFactory.newCall(request);
     if (call == null) {
       throw new NullPointerException("Call.Factory returned null.");
@@ -227,6 +229,7 @@ final class OkHttpCall<T> implements Call<T> {
 
     ExceptionCatchingRequestBody catchingBody = new ExceptionCatchingRequestBody(rawBody);
     try {
+      //开始解析返回的数据
       T body = serviceMethod.toResponse(catchingBody);
       return Response.success(body, rawResponse);
     } catch (RuntimeException e) {
