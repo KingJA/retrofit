@@ -133,23 +133,27 @@ final class ServiceMethod<R, T> {
     }
 
     public ServiceMethod build() {
+      //获取匹配的适配器
       callAdapter = createCallAdapter();
+      //返回类型
       responseType = callAdapter.responseType();
+      //如果返回值类型是Response或者OkHttp的Response类型则报错
       if (responseType == Response.class || responseType == okhttp3.Response.class) {
         throw methodError("'"
             + Utils.getRawType(responseType).getName()
             + "' is not a valid response body type. Did you mean ResponseBody?");
       }
+      //创建返回结果转换器
       responseConverter = createResponseConverter();
 
       for (Annotation annotation : methodAnnotations) {
         parseMethodAnnotation(annotation);
       }
-        //没有方法注解则报隐藏
+        //没有请求方法注解则报错
       if (httpMethod == null) {
         throw methodError("HTTP method annotation is required (e.g., @GET, @POST, etc.).");
       }
-
+      //如果没有请求体，但是又添加了Multipart或FormEncoded注解，则报错
       if (!hasBody) {
         if (isMultipart) {
           throw methodError(
@@ -160,10 +164,11 @@ final class ServiceMethod<R, T> {
               + "request body (e.g., @POST).");
         }
       }
-
+      //获取参数注解个数
       int parameterCount = parameterAnnotationsArray.length;
       parameterHandlers = new ParameterHandler<?>[parameterCount];
       for (int p = 0; p < parameterCount; p++) {
+        //获取参数类型
         Type parameterType = parameterTypes[p];
         if (Utils.hasUnresolvableType(parameterType)) {
           throw parameterError(p, "Parameter type must not include a type variable or wildcard: %s",
@@ -174,7 +179,7 @@ final class ServiceMethod<R, T> {
         if (parameterAnnotations == null) {
           throw parameterError(p, "No Retrofit annotation found.");
         }
-
+        //未理解
         parameterHandlers[p] = parseParameter(p, parameterType, parameterAnnotations);
       }
 
@@ -195,18 +200,21 @@ final class ServiceMethod<R, T> {
     }
 
     private CallAdapter<T, R> createCallAdapter() {
+      //获取方法的返回类型
       Type returnType = method.getGenericReturnType();
       if (Utils.hasUnresolvableType(returnType)) {
         throw methodError(
             "Method return type must not include a type variable or wildcard: %s", returnType);
       }
+      //返回类型不能为void
       if (returnType == void.class) {
         throw methodError("Service methods cannot return void.");
       }
+      //获取方法的注解
       Annotation[] annotations = method.getAnnotations();
       try {
         //noinspection unchecked
-        return (CallAdapter<T, R>) retrofit.callAdapter(returnType, annotations);
+        return (CallAdapter<T, R>) retrofit.callAdapter(returnType, annotations);//>>>进入方法
       } catch (RuntimeException e) { // Wide exception range because factories are user code.
         throw methodError(e, "Unable to create call adapter for %s", returnType);
       }
@@ -240,6 +248,7 @@ final class ServiceMethod<R, T> {
         }
         headers = parseHeaders(headersToParse);
       } else if (annotation instanceof Multipart) {
+        //FormUrlEncoded和Multipart不能同时存在
         if (isFormEncoded) {
           throw methodError("Only one encoding annotation is allowed.");
         }
@@ -253,13 +262,14 @@ final class ServiceMethod<R, T> {
     }
 
     private void parseHttpMethodAndPath(String httpMethod, String value, boolean hasBody) {
+      //不能同事配置多个HttpMethod注解
       if (this.httpMethod != null) {
         throw methodError("Only one HTTP method is allowed. Found: %s and %s.",
             this.httpMethod, httpMethod);
       }
       this.httpMethod = httpMethod;
       this.hasBody = hasBody;
-
+      //如果方法注解的值为空的不执行
       if (value.isEmpty()) {
         return;
       }

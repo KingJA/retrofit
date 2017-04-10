@@ -164,10 +164,9 @@ public final class Retrofit {
   }
 
   ServiceMethod<?, ?> loadServiceMethod(Method method) {
-    //有缓存则返回缓存的方法
+    //有缓存则返回缓存的方法,serviceMethodCache是ConcurrentHashMap线程安全
     ServiceMethod<?, ?> result = serviceMethodCache.get(method);
     if (result != null) return result;
-
     //没缓存则创建方法，并存入缓存
     synchronized (serviceMethodCache) {
       result = serviceMethodCache.get(method);
@@ -219,10 +218,12 @@ public final class Retrofit {
    */
   public CallAdapter<?, ?> nextCallAdapter(CallAdapter.Factory skipPast, Type returnType,
       Annotation[] annotations) {
+    //非空判断
     checkNotNull(returnType, "returnType == null");
     checkNotNull(annotations, "annotations == null");
-
-    int start = adapterFactories.indexOf(skipPast) + 1;
+    //为什么用nextCallAdapter，需要解决
+    int start = adapterFactories.indexOf(skipPast) + 1;//?
+    //遍历适配器集合，如果满足要求则返回，满足逻辑需进一步学习
     for (int i = start, count = adapterFactories.size(); i < count; i++) {
       CallAdapter<?, ?> adapter = adapterFactories.get(i).get(returnType, annotations, this);
       if (adapter != null) {
